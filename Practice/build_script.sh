@@ -11,6 +11,8 @@ echo "Now Compile........."
 #chmod 777 CheckFourPoints
 #./CheckFourPoints
 
+CPP_FILE=$1
+
 function compileExec()
 {
 	file=$1
@@ -19,4 +21,6 @@ function compileExec()
 	./$file
 }
 
-compileExec CheckFourPoints
+compileExec $CPP_FILE
+
+find . -name "*.exe" -type f -delete
