@@ -26,12 +26,19 @@ namespace SharedData
             //Listing_01.ReturnValueOfTask();
             //Listing_01.CancelTaskByPolling();
             //Listing_01.CancelTaskWithDelegate();
-            Listing_01.CancelTaskWithWaitHandle();
+            //Listing_01.CancelTaskWithWaitHandle();
             //Listing_01.CancelMultiTask();
             //Listing_01.CreateCompositeCancelToken();
             //Listing_01.DetermineTaskIsCancelled();
             //Listing_01.CancelTaskWithWaitHandleTimeSpan();
             //Listing_01.UsingClassicSleep();
+            //Listing_01.WaitingForSingleTask();
+            //Listing_01.WaitingForOneOfManyTasks();
+            //Listing_01.HandleExceptionInTask();
+            //Listing_01.ReadTaskProperties();
+            //Listing_01.UsingEscalationPolicy();
+            //Listing_01.LazyTaskExecution();
+            Listing_01.TaskDependencyDeadlock();
 
             //// Create the bank account instance
             //BankAccount account = new BankAccount();

@@ -452,5 +452,372 @@ namespace SharedData
 
             EndOfPrograme();
         }
+
+        public static void WaitingForSingleTask()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            CancellationToken token = tokenSource.Token;
+
+            Task task = createTask(token);
+            task.Start();
+
+            Console.WriteLine("Waiting for task to complete.");
+            task.Wait();
+            Console.WriteLine("Task Completed.");
+
+            task = createTask(token);
+            task.Start();
+
+            Console.WriteLine("Waiting for task to complete.");
+            bool completed = task.Wait(2000);
+            Console.WriteLine("Wait ended - task completed: {0} task cancelled {1}", completed, task.IsCanceled);
+
+            task = createTask(token);
+            task.Start();
+
+            Console.WriteLine("Waiting 2 secs for task to complete.");
+            completed = task.Wait(2000, token);
+            Console.WriteLine("Wait ended - task completed: {0} task cancelled {1}", completed, task.IsCanceled);
+
+
+            EndOfPrograme();
+        }
+
+        private static Task createTask(CancellationToken token)
+        {
+            return new Task(() =>
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    Console.WriteLine("Task - Int value {0}", i);
+                    token.WaitHandle.WaitOne(1000);
+                }
+            }, token);
+        }
+
+        public static void WaitingForSeveralTasks()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            CancellationToken token = tokenSource.Token;
+
+            Task task1 = new Task(() =>
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    Console.WriteLine("Task 1 - Int value {0}", i);
+                    token.WaitHandle.WaitOne(1000);
+                }
+                Console.WriteLine("Task 1 complete");
+            }, token);
+
+            Task task2 = new Task(() =>
+            {
+                Console.WriteLine("Task 2 complete");
+            }, token);
+
+            task1.Start();
+            task2.Start();
+
+            Console.WriteLine("Waiting for tasks to complete");
+            Task.WaitAll(task1, task2);
+            Console.WriteLine("Task completed.");
+
+            EndOfPrograme();
+        }
+
+        public static void WaitingForOneOfManyTasks()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            CancellationToken token = tokenSource.Token;
+
+            Task task1 = new Task(() =>
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    Console.WriteLine("Task 1 - Int value {0}", i);
+                    token.WaitHandle.WaitOne(1000);
+                }
+                Console.WriteLine("Task 1 complete.");
+            }, token);
+
+            Task task2 = new Task(() =>
+            {
+                Console.WriteLine("Task 2 complete");
+            }, token);
+
+            task1.Start();
+            task2.Start();
+
+            Console.WriteLine("Waiting for tasks to complete");
+            int taskIndex = Task.WaitAny(task2, task1);
+            Console.WriteLine("Task completed. Index: {0}", taskIndex);
+
+            EndOfPrograme();
+        }
+
+        // would show the complete task result first ,then list every exception accepted from task
+        public static void HandleExceptionInTask()
+        {
+            Task task1 = new Task(() =>
+            {
+                ArgumentOutOfRangeException exception = new ArgumentOutOfRangeException();
+                exception.Source = "task1";
+                throw exception;
+            });
+
+            Task task2 = new Task(() =>
+            {
+                throw new NullReferenceException();
+            });
+
+            Task task3 = new Task(() =>
+            {
+                Console.WriteLine("Hello from Task 3");
+            });
+
+            task1.Start(); task2.Start(); task3.Start();
+
+            try
+            {
+                Task.WaitAll(task1, task2, task3);
+            }
+            catch (AggregateException ex)
+            {
+                foreach (Exception inner in ex.InnerExceptions)
+                {
+                    Console.WriteLine("Exception type {0} from {1}", inner.GetType(), inner.Source);
+                }
+            }
+            EndOfPrograme();
+        }
+
+        public static void UsingIterativeExceptionHandler()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            CancellationToken token = tokenSource.Token;
+
+            Task task1 = new Task(() =>
+            {
+                // wait forever or until the token is cancelled.
+                token.WaitHandle.WaitOne(-1);
+                throw new OperationCanceledException(token);
+            }, token);
+
+            Task task2 = new Task(() =>
+            {
+                throw new NullReferenceException();
+            });
+
+            tokenSource.Cancel();
+
+            try
+            {
+                Task.WaitAll(task1, task2);
+            }
+            catch (AggregateException ex)
+            {
+                ex.Handle((inner) =>
+                {
+                    if (inner is OperationCanceledException)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                });
+            }
+
+            EndOfPrograme();
+        }
+
+        public static void ReadTaskProperties()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+
+            Task task1 = new Task(() =>
+            {
+                throw new NullReferenceException();
+            });
+
+            Task task2 = new Task(() =>
+            {
+                tokenSource.Token.WaitHandle.WaitOne(-1);
+                throw new OperationCanceledException();
+            }, tokenSource.Token);
+
+            task1.Start();
+            task2.Start();
+
+            tokenSource.Cancel();
+
+            try
+            {
+                Task.WaitAll(task1, task2);
+            }
+            catch (AggregateException)
+            {
+
+            }
+
+            Console.WriteLine("Task 1 completed: {0}", task1.IsCompleted);
+            Console.WriteLine("Task 1 faulted: {0}", task1.IsFaulted);
+            Console.WriteLine("Task 1 cancelled: {0}", task1.IsCanceled);
+            Console.WriteLine(task1.Exception);
+
+            Console.WriteLine("Task 2 completed: {0}", task2.IsCompleted);
+            Console.WriteLine("Task 2 faulted: {0}", task2.IsFaulted);
+            Console.WriteLine("Task 2 cancelled: {0}", task2.IsCanceled);
+            Console.WriteLine(task2.Exception);
+
+            EndOfPrograme();
+        }
+
+        /**
+         *  https://stackoverflow.com/questions/3284137/taskscheduler-unobservedtaskexception-event-handler-never-being-triggered
+         *  https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.taskscheduler.unobservedtaskexception?redirectedfrom=MSDN&view=netframework-4.7.2
+         *  warning: default code is wrong.
+         *  according to test, only this case worked!!!
+         *  ABOUT CONFIGURATION DON'T NEED TO ADD THIS BELOW:
+         *  <runtime>
+         *      <ThrowUnobservedTaskExceptions enabled="true"/>
+         *    </runtime>
+         **/
+
+        public static void UsingEscalationPolicy()
+        {
+            // create the new escalation policy
+            TaskScheduler.UnobservedTaskException +=
+                (object sender, UnobservedTaskExceptionEventArgs eventArgs) =>
+                {
+                    Console.WriteLine("Caught!");
+                    // mark the exception being handled
+                    eventArgs.SetObserved();
+
+                    // get the aggregate exception and process the contents
+                    ((AggregateException)eventArgs.Exception).Handle(ex =>
+                    {
+                        Console.WriteLine("Exception type: {0}", ex.GetType());
+                        return true;
+                    });
+                };
+            /**
+             *  even defined here can't catch the exception, only runtask successed. so weird...
+             **/
+            //Task task1 = Task.Factory.StartNew(() =>
+            //{
+            //    Thread.Sleep(1000); // emulate some calculation
+            //    Console.WriteLine("Before exception 1");
+            //    throw new NullReferenceException();
+            //});
+
+            //Task task2 = Task.Factory.StartNew(() =>
+            //{
+            //    Thread.Sleep(1000); // emulate some calculation
+            //    Console.WriteLine("Before exception 2");
+            //    throw new ArgumentOutOfRangeException();
+            //});
+
+            RunTask();
+
+            //Thread.Sleep(2000);
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            EndOfPrograme();
+        }
+
+        private static void RunTask()
+        {
+            Task task1 = Task.Factory.StartNew(() =>
+            {
+                Thread.Sleep(1000); // emulate some calculation
+                Console.WriteLine("Before exception 1");
+                throw new NullReferenceException();
+            });
+
+            Task task2 = Task.Factory.StartNew(() =>
+            {
+                Thread.Sleep(1000); // emulate some calculation
+                Console.WriteLine("Before exception 2");
+                throw new ArgumentOutOfRangeException();
+            });
+
+            while (!task1.IsCompleted || !task2.IsCompleted)
+            {
+                Console.WriteLine("need to sleep.");
+                Thread.Sleep(2000);
+            }
+        }
+
+        public static void LazyTaskExecution()
+        {
+            Func<string> taskBody = new Func<string>(() =>
+            {
+                Console.WriteLine("Task body working...");
+                return "Task Result";
+            });
+
+            Lazy<Task<string>> lazyData = new Lazy<Task<string>>(() =>            
+                Task<string>.Factory.StartNew(taskBody));
+
+            Console.WriteLine("Calling lazy variable.");
+            Console.WriteLine("Result from task: {0}", lazyData.Value.Result);
+
+            Lazy<Task<string>> lazyData2 = new Lazy<Task<string>>(() => Task<string>.Factory.StartNew(() =>
+            {
+                Console.WriteLine("Task body 2 working...");
+                return "Task Result 2";
+            }));
+
+            Console.WriteLine("Calling second lazy variable");
+            Console.WriteLine("Result from task: {0}", lazyData2.Value.Result);
+
+            EndOfPrograme();
+        }
+
+        public static void TaskDependencyDeadlock()
+        {
+            // Task<int>[] tasks = new Task<int>[2];  
+            Task<int>[] tasks = new Task<int>[3];
+
+            int value = 0;
+
+            tasks[0] = Task.Factory.StartNew(() =>
+            {
+                // return tasks[1].Result + 100; // deadlock
+                // return value + 100;
+                return tasks[2].Result + 100;  // self deadlock
+            });
+
+            tasks[1] = Task.Factory.StartNew(() =>
+            {
+                // return tasks[1].Result + 100; // deadlock
+                // return value + 100;
+                return tasks[2].Result + 100;  // self deadlock
+            });
+
+            tasks[2] = Task.Factory.StartNew(() =>
+            {
+                // return tasks[1].Result + 100; // deadlock
+                // return value + 100;
+                return 3;  // self deadlock
+            });
+
+            Task.WaitAll(tasks);
+
+            Console.WriteLine("Task1 value {0}", tasks[0].Result);  // 103
+            Console.WriteLine("Task2 value {0}", tasks[1].Result);  // 103
+
+            EndOfPrograme();
+        }
+
+
     }
 }
