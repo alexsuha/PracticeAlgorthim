@@ -818,6 +818,70 @@ namespace SharedData
             EndOfPrograme();
         }
 
+        public static void LocalVariableEvaluation()
+        {
+            // create and start the "bad" tasks
+            for (int i = 0; i < 5; i++)
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    Console.WriteLine("Task {0} has counter value: {1}", Task.CurrentId, i);
+                });
+            }
 
+            // create and start the "good" tasks
+            for (int i = 0; i < 5; i++)
+            {
+                Task.Factory.StartNew((stateObj) =>
+                {
+                    // cast the state object to an int
+                    int loopValue = (int)stateObj;
+                    Console.WriteLine("Task1 {0} has counter value: {1}", Task.CurrentId, loopValue);
+                }, i);
+            }
+
+            EndOfPrograme();
+        }
+
+        // TODO: can't work, do it later.
+        public static void ExcessiveSpinning()
+        {
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+
+            // create the first task
+            Task task1 = Task.Factory.StartNew(() =>
+            {
+                Console.WriteLine("Task 1 waiting for cancellation.");
+                tokenSource.Token.WaitHandle.WaitOne();
+                Console.WriteLine("Task 1 cancelled.");
+                tokenSource.Token.ThrowIfCancellationRequested();
+            }, tokenSource.Token);
+
+            // create the second task, which will use a code loop
+            //Task task2 = Task.Factory.StartNew(() =>
+            //{
+            //    while (!task1.Status.HasFlag(TaskStatus.Canceled))
+            //    {
+            //        // do nothing - this is a code loop
+            //    }
+            //    Console.WriteLine("Task 2 exited code loop.");
+            //});
+
+            ////create the third loop which will use spin waiting
+            //Task task3 = Task.Factory.StartNew(() =>
+            //{
+            //    while (task1.Status != TaskStatus.Canceled)
+            //    {
+            //        Thread.SpinWait(1000);
+            //    }
+            //    Console.WriteLine("Task 3 exited spin wait loop");
+            //});
+
+            Console.WriteLine("Press enter to cancel token");
+            Console.ReadLine();
+            tokenSource.Cancel();
+
+            EndOfPrograme();
+        }
     }
 }
