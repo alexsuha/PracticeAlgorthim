@@ -12,7 +12,45 @@ namespace SharedData
         static void Main(string[] args)
         {
             Listing_01Demos();
-            Listing_03Demos();            
+            Listing_03Demos();
+            Listing_04Demos();
+            Listing_05Demos();
+        }
+
+        private static void Listing_05Demos()
+        {
+            //Listing_05.UsingParallelLoop();
+            //Listing_05.PerformActionsUsingParallelInvoke();
+            //Listing_05.UsingBasicParallelLoop();
+            //Listing_05.CreateASteppedLoop();
+            //Listing_05.SettingOptionsForAParallelLoop();
+            //Listing_05.UsingStopInParallelLoop();
+            //Listing_05.UsingBreakInAParallelLoop();
+            //Listing_05.UsingParallelLoopResult();
+            //Listing_05.CancelParallelLoops();
+            //Listing_05.UsingLocalStorageInParallelLoop();
+            Listing_05.UsingMixingSynchronousAndParallelLoops();
+        }
+
+        private static void Listing_04Demos()
+        {
+            //Listing_04.TaskContinuation();
+            //Listing_04.SimpleChildTask();
+            //Listing_04.UsingBarrierClass();
+            //Listing_04.ReduceParticipation();
+            //Listing_04.UsingCancellationDealingWithExceptions();
+            //Listing_04.UsingCountDownEvent();
+            //Listing_04.UsingAutoResetEvent();
+            //Listing_04.UsingSemaphoreSlim();
+            //Listing_04.UsingParallelProducerConsumer();
+            //Listing_04.UsingMultipleBlockingCollection();
+            //Listing_04.UsingCustomScheduler();
+            //Listing_04.InconsistentCancellation();
+            //Listing_04.AssumingWaitAnyStatus();
+            //Listing_04.TryingToTakeConcurrently();
+            //Listing_04.ReusingObjectsinProducers();
+            //Listing_04.UsingBlockingCollectionAsIEnum();
+            //Listing_04.TestDeadlockedTaskScheduler();
         }
 
         private static void Listing_01Demos()
@@ -60,7 +98,7 @@ namespace SharedData
             //Listing_03.MisTakenImmutability();
             //Listing_03.UsingMultiLock();
             //Listing_03.LockAcquisitionOrder();
-            Listing_03.OrphanedLock();
+            //Listing_03.OrphanedLock();
         }
     }
 }

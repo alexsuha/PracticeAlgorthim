@@ -6,6 +6,16 @@ using System.Threading.Tasks;
 
 namespace SharedData
 {
+    public class SharedApp
+    {
+        public static void EndOfProgram()
+        {
+            // wait for input before exiting
+            Console.WriteLine("main method complete. Press enter to finish.");
+            Console.ReadLine();
+        }
+    }
+
     class Listing_01
     {
         public static void NewTaskStart()
