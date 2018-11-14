@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -330,7 +331,343 @@ namespace SharedData
             Action<int> paction = new Action<int>(pdel);
             Parallel.For(0, resultData.Length, paction);
 
+            Console.WriteLine("result : {0}", resultData[40000]);
             EndOfProgram();
+        }
+
+        public static void UsingChunkingPartitioner()
+        {
+            OrderablePartitioner<Tuple<int, int>> chunkPart = Partitioner.Create(0, resultData.Length, 10000);
+
+            Parallel.ForEach(chunkPart, chunkRange =>
+            {
+                for (int i = chunkRange.Item1; i < chunkRange.Item2; i++)
+                {
+                    resultData[i] = Math.Pow(i, 2);
+                }
+            });
+
+            EndOfProgram();
+        }
+
+        public static void UsingOrderedPartitioningStrategy()
+        {
+            IList<string> sourceData = new List<string>() { "an", "apple", "a", "day", "keeps", "the", "doctor", "away" };
+
+            string[] resultData = new string[sourceData.Count];
+
+            OrderablePartitioner<string> op = Partitioner.Create(sourceData);
+
+            Parallel.ForEach(op, (string item, ParallelLoopState loopState, long index) =>
+            {
+                if (item == "apple") item = "apricot";
+                resultData[index] = item;
+            });
+
+            for (int i = 0; i < resultData.Length; i++)
+            {
+                Console.WriteLine("Item {0} is {1}", i, resultData[i]);
+            }
+
+            EndOfProgram();
+        }
+
+        public static void UsingContextPartitioner()
+        {
+            Random rnd = new Random();
+
+            WorkItem[] sourceData = new WorkItem[10000];
+            for (int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = new WorkItem() { WorkDuration = rnd.Next(1, 11) };
+            }
+
+            Partitioner<WorkItem> cPartitioner = new ContextPartitioner(sourceData, 100);
+
+            Parallel.ForEach(cPartitioner, item =>
+            {
+                item.performWork();
+            });
+
+            EndOfProgram();
+        }
+
+        public static void ContextTest()
+        {
+            Random rnd = new Random();
+
+            WorkItem[] sourceData = new WorkItem[10000];
+            for(int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = new WorkItem() { WorkDuration = rnd.Next(1, 11) };
+            }
+            WorkItem[] resultData = new WorkItem[sourceData.Length];
+            OrderablePartitioner<WorkItem> cPartitioner = new ContextPartitionerII(sourceData, 100);
+
+            Parallel.ForEach(cPartitioner, (WorkItem item, ParallelLoopState loopState, long index) =>
+            {
+                item.performWork();
+                resultData[index] = item;
+            });
+        }
+
+        public static void SynchronizationInLoop()
+        {
+            double total = 0;
+            object lockObj = new object();
+
+            Parallel.For(0, 100000, item =>
+            {
+                lock(lockObj)
+                {
+                    total += Math.Pow(item, 2);
+                }
+            });
+        }
+
+        public static void LoopBodyDataRaces()
+        {
+            double total = 0;
+
+            Parallel.For(0, 100000, item =>
+            {
+                total += Math.Pow(item, 2);
+            });
+
+            Console.WriteLine("Expected result: 333328333350000");
+            Console.WriteLine("Actual result: {0}", total);
+        }
+
+        public static void UsingStandardCollections()
+        {
+            int[] sourceData = new int[10000];
+            for(int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+            List<int> resultData = new List<int>();
+            object obj = new object();
+            long frequency;
+            long lastTime;
+            long currentTime;
+            bool ret = Win32API.QueryPerformanceFrequency(out frequency);
+            if (ret == false)
+            {
+                Console.WriteLine("not support to query frequency");
+                return;
+            }
+            Win32API.QueryPerformanceCounter(out lastTime);
+
+            Parallel.ForEach(sourceData, item =>
+            {
+                //lock (obj)
+                {
+                    resultData.Add(item);
+                }
+            });
+
+            Win32API.QueryPerformanceCounter(out currentTime);
+
+            double elapse = (currentTime - lastTime) / (double)frequency;
+
+            Win32API.QueryPerformanceCounter(out lastTime);
+
+            foreach(int item in sourceData)
+            {
+                 resultData.Add(item);
+            }
+
+            Win32API.QueryPerformanceCounter(out currentTime);
+            double elapse1 = (currentTime - lastTime) / (double)frequency;
+
+            Console.WriteLine("Result Parallel {0}", elapse);
+            Console.WriteLine("Result Single {0}", elapse1);
+
+            Console.WriteLine("Press enter to finish");
+            Console.ReadLine();
+        }
+
+        public static void UsingChangingData()
+        {
+            List<int> sourceData = new List<int>();
+            for(int i = 0; i < 10; i++)
+            {
+                sourceData.Add(i);
+            }
+
+            Task.Factory.StartNew(() =>
+            {
+                int counter = 10;
+                while (true)
+                {
+                    Thread.Sleep(250);
+                    Console.WriteLine("Adding item {0}", counter);
+                    sourceData.Add(counter++);
+                }
+            });
+
+            Parallel.ForEach(sourceData, item =>
+            {
+                Console.WriteLine("Processing item {0}", item);
+            });
+
+            EndOfProgram();
+        }
+
+        public static void PLINQQueries()
+        {
+            int[] sourceData = new int[10];
+            for(int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+
+            IEnumerable<double> result1 = from item in sourceData select Math.Pow(item, 2);
+
+            foreach(double d in result1)
+            {
+                Console.WriteLine("Sequential result: {0}", d);
+            }
+
+            IEnumerable<double> result2 = from item in sourceData.AsParallel() select Math.Pow(item, 2);
+
+            foreach(double d in result2)
+            {
+                Console.WriteLine("Parallel result: {0}", d);
+            }
+
+            EndOfProgram();
+        }
+
+        public static void UsingExtensionMethods()
+        {
+            int[] sourceData = new int[10];
+            for(int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+
+            IEnumerable<double> result1 = sourceData.Select(item => Math.Pow(item, 2));
+
+            foreach (double d in result1)
+            {
+                Console.WriteLine("Sequential result: {0}", d);
+            }
+
+            var result2 = sourceData.AsParallel().Select(item => Math.Pow(item, 2));
+
+            foreach (var d in result2)
+            {
+                Console.WriteLine("Parallel result: {0}", d);
+            }
+
+            EndOfProgram();
+        }
+
+        public static void UsingPLINQFilteringQuery()
+        {
+            int[] sourceData = new int[100000];
+            for(int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+
+            IEnumerable<double> results1 = from item in sourceData.AsParallel() where item % 2 == 0 select Math.Pow(item, 2);
+
+            foreach (var d in results1)
+            {
+                Console.WriteLine("Result: {0}", d);
+            }
+
+            IEnumerable<double> results2 = sourceData.AsParallel().Where(item => item % 2 == 0).Select(item => Math.Pow(item, 2));
+
+            foreach(var d in results2)
+            {
+                Console.WriteLine("Result: {0}", d);
+            }
+
+            EndOfProgram();
+        }
+
+        public static void UsingCustomAggregation()
+        {
+            int[] sourceData = new int[10000];
+            for (int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+
+            double aggregateResult = sourceData.AsParallel().Aggregate(
+                0.0,
+                (subtotal, item) => subtotal += Math.Pow(item, 2),
+                (total, subtotal) => total + subtotal,
+                total => total/ 2);
+
+            Console.WriteLine("Total: {0}", aggregateResult);
+            
+            EndOfProgram();
+        }
+
+        public static void GenerateParallelRanges()
+        {
+            IEnumerable<double> result1 = from e in ParallelEnumerable.Range(0, 10) where e % 2 == 0 select Math.Pow(e, 2);
+            IEnumerable<double> result2 = ParallelEnumerable.Repeat(10, 100).Select(item => Math.Pow(item, 2));
+
+            EndOfProgram();
+        }
+        
+        public static void CreateRaceConditions()
+        {
+            int[] sourceData = new int[10000];
+            for (int i = 0; i < sourceData.Length; i++)
+            {
+                sourceData[i] = i;
+            }
+            int counter = 1000;
+            var result = from e in sourceData.AsParallel() where (counter-- > 0) select e;
+
+            EndOfProgram();
+        }
+
+        public static void ConfusingOrdering()
+        {
+            string[] sourceData = new string[] { "an", "apple", "a", "day", "keeps", "the", "doctor", "away" };
+            var result1 = sourceData.AsParallel().AsOrdered().Select(item => item);
+            foreach (var v in result1)
+            {
+                Console.WriteLine("AsOrdered() - {0}", v);
+            }
+            var result2 = sourceData.AsParallel().OrderBy(item => item).Select(item => item);
+            foreach (var v in result2)
+            {
+                Console.WriteLine("OrderedBy() - {0}", v);
+            }
+            EndOfProgram();
+        }
+
+        public static void SequentialFiltering()
+        {
+            int[] source1 = new int[100];
+            for (int i = 0; i < source1.Length; i++)
+            {
+                source1[i] = i;
+            }
+            var result = source1.Where(item => item % 2 == 0).AsParallel().Select(item => item);
+            foreach (var v in result)
+            {
+                Console.WriteLine("SequentialFiltering() - {0}", v);
+            }
+            EndOfProgram();
+        }
+    }
+
+    class WorkItem
+    {
+        public int WorkDuration { get; set; }
+        public void performWork()
+        {
+            Console.WriteLine("performWork: {0} in task {1}", WorkDuration, Task.CurrentId);
+            Thread.Sleep(WorkDuration);
         }
     }
 }

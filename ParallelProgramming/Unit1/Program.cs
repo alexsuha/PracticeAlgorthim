@@ -15,6 +15,20 @@ namespace SharedData
             Listing_03Demos();
             Listing_04Demos();
             Listing_05Demos();
+            Listing_07Demos();
+        }
+
+        private static void Listing_07Demos()
+        {
+            //Listing_07.UsingStopWatchMeasureParallelLoopConcurrency();
+            //Listing_07.DebuggingProgrammeState();
+            //Listing_07.HandleTaskExceptions();
+            //Listing_07.DetectDeadlocks();
+            //Listing_07.UsingParallelMap();
+            //Listing_07.UsingParallelReduce();
+            //Listing_07.UsingSpeculativeSuggestion();
+            //Listing_07.UsingDecoupledConsole();
+            Listing_07.UsingPipeLine();
         }
 
         private static void Listing_05Demos()
@@ -29,7 +43,19 @@ namespace SharedData
             //Listing_05.UsingParallelLoopResult();
             //Listing_05.CancelParallelLoops();
             //Listing_05.UsingLocalStorageInParallelLoop();
-            Listing_05.UsingMixingSynchronousAndParallelLoops();
+            //Listing_05.UsingMixingSynchronousAndParallelLoops();
+            //Listing_05.UsingChunkPartitioningStrategy();
+            //Listing_05.UsingChunkingPartitioner();
+            //Listing_05.UsingOrderedPartitioningStrategy();
+            //Listing_05.UsingContextPartitioner();
+            //Listing_05.LoopBodyDataRaces();
+            //Listing_05.UsingStandardCollections();
+            //Listing_05.UsingChangingData();
+            //Listing_05.PLINQQueries();
+            //Listing_05.UsingExtensionMethods();
+            //Listing_05.CreateRaceConditions();
+            //Listing_05.ConfusingOrdering();
+            //Listing_05.SequentialFiltering();
         }
 
         private static void Listing_04Demos()
